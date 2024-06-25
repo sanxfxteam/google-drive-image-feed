@@ -6,35 +6,39 @@
       Sign In with Google
     </button>
     
-    <div v-else>
-      <div class="flex mb-4">
-        <div class="w-1/3 pr-4">
-          <h2 class="text-xl font-semibold mb-2">Folders</h2>
-          <ul class="menu bg-base-200 w-full rounded-box">
-            <li v-for="folder in folders" :key="folder.id">
-              <a @click="selectFolder(folder.id)" :class="{ 'active': selectedFolder === folder.id }">
-                {{ folder.name }}
-              </a>
-            </li>
-          </ul>
+    <div v-else class="flex flex-col md:flex-row">
+      <div class="w-full md:w-1/4 pr-4 mb-4 md:mb-0">
+        <h2 class="text-xl font-semibold mb-2">Subfolders</h2>
+        <div v-if="loading" class="flex justify-center items-center h-64">
+          <span class="loading loading-spinner loading-lg"></span>
         </div>
-        
-        <div class="w-2/3">
-          <h2 class="text-xl font-semibold mb-2">Images</h2>
-          <div v-if="loading" class="flex justify-center items-center h-64">
-            <span class="loading loading-spinner loading-lg"></span>
-          </div>
-          <div v-else-if="images.length === 0" class="alert alert-info">
-            No images found in this folder.
-          </div>
-          <div v-else class="grid grid-cols-3 gap-4">
-            <div v-for="image in images" :key="image.id" class="card bg-base-100 shadow-xl">
-              <figure><img :src="image.thumbnailLink" :alt="image.name" class="w-full h-48 object-cover" /></figure>
-              <div class="card-body">
-                <h2 class="card-title">{{ image.name }}</h2>
-                <div class="card-actions justify-end">
-                  <a :href="image.webViewLink" target="_blank" class="btn btn-primary btn-sm">View</a>
-                </div>
+        <ul v-else class="menu bg-base-200 w-full rounded-box">
+          <li v-for="folder in folders" :key="folder.id">
+            <a @click="selectFolder(folder.id, folder.name)" 
+               :class="{ 'active': selectedFolder === folder.id }">
+              {{ folder.name }}
+            </a>
+          </li>
+        </ul>
+      </div>
+      
+      <div class="w-full md:w-3/4">
+        <h2 class="text-xl font-semibold mb-2">Images</h2>
+        <div v-if="loading" class="flex justify-center items-center h-64">
+          <span class="loading loading-spinner loading-lg"></span>
+        </div>
+        <div v-else-if="images.length === 0" class="alert alert-info">
+          No images found in this folder.
+        </div>
+        <div v-else class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4" ref="imageGrid">
+          <div v-for="image in images" :key="image.id" class="card bg-base-100 shadow-xl">
+            <figure class="aspect-square overflow-hidden">
+              <img :src="image.thumbnailLink" :alt="image.name" class="w-full h-full object-cover" />
+            </figure>
+            <div class="card-body p-4">
+              <h2 class="card-title text-sm">{{ image.name }}</h2>
+              <div class="card-actions justify-end">
+                <a :href="image.webViewLink" target="_blank" class="btn btn-primary btn-sm">View</a>
               </div>
             </div>
           </div>
@@ -45,8 +49,9 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import { loadGapiInsideDOM } from "gapi-script";
+import { useRoute, useRouter } from 'vue-router';
 
 export default {
   name: 'GoogleDriveImageFeed',
@@ -56,12 +61,16 @@ export default {
     const selectedFolder = ref(null);
     const images = ref([]);
     const loading = ref(false);
+    const nextPageToken = ref(null);
+    const imageGrid = ref(null);
 
-    // Use environment variables
+    const route = useRoute();
+    const router = useRouter();
+
     const ROOT_FOLDER_ID = import.meta.env.VITE_ROOT_FOLDER_ID;
-    const SHARED_DRIVE_ID = import.meta.env.VITE_SHARED_DRIVE_ID;
     const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
     const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    const SHARED_DRIVE_ID = import.meta.env.VITE_SHARED_DRIVE_ID;
 
     const initGoogleAuth = async () => {
       await loadGapiInsideDOM();
@@ -78,14 +87,20 @@ export default {
       authInstance.isSignedIn.listen(updateSignInStatus);
 
       if (isSignedIn.value) {
-        listSubfolders(ROOT_FOLDER_ID);
+        await listSubfolders(ROOT_FOLDER_ID);
+        if (route.query.folder) {
+          const folder = folders.value.find(f => f.name === route.query.folder);
+          if (folder) {
+            selectFolder(folder.id, folder.name);
+          }
+        }
       }
     };
 
-    const updateSignInStatus = (signedIn) => {
+    const updateSignInStatus = async (signedIn) => {
       isSignedIn.value = signedIn;
       if (signedIn) {
-        listSubfolders(ROOT_FOLDER_ID);
+        await listSubfolders(ROOT_FOLDER_ID);
       } else {
         folders.value = [];
         images.value = [];
@@ -114,32 +129,66 @@ export default {
       loading.value = false;
     };
 
-    const selectFolder = async (folderId) => {
+    const selectFolder = async (folderId, folderName) => {
       selectedFolder.value = folderId;
+      router.push({ query: { folder: folderName } });
       await listImages(folderId);
     };
 
-    const listImages = async (folderId) => {
+    const listImages = async (folderId, pageToken = null) => {
       loading.value = true;
-      images.value = [];
       try {
         const response = await gapi.client.drive.files.list({
           q: `'${folderId}' in parents and (mimeType contains 'image/')`,
-          fields: 'files(id, name, webViewLink, thumbnailLink)',
+          fields: 'nextPageToken, files(id, name, webViewLink, thumbnailLink)',
+          pageSize: 20,
+          pageToken: pageToken,
           supportsAllDrives: true,
           includeItemsFromAllDrives: true,
           corpora: 'drive',
           driveId: SHARED_DRIVE_ID
         });
-        images.value = response.result.files;
+        if (pageToken) {
+          images.value = [...images.value, ...response.result.files];
+        } else {
+          images.value = response.result.files;
+        }
+        nextPageToken.value = response.result.nextPageToken;
       } catch (error) {
         console.error('Error listing images:', error);
       }
       loading.value = false;
     };
 
+    const loadMoreImages = async () => {
+      if (nextPageToken.value && !loading.value) {
+        await listImages(selectedFolder.value, nextPageToken.value);
+      }
+    };
+
+    const handleScroll = () => {
+      const grid = imageGrid.value;
+      if (grid) {
+        const bottomOfGrid = grid.getBoundingClientRect().bottom;
+        const bottomOfWindow = window.innerHeight;
+        if (bottomOfGrid <= bottomOfWindow + 100) {
+          loadMoreImages();
+        }
+      }
+    };
+
+    watch(() => route.query.folder, async (newFolder) => {
+      if (newFolder && folders.value.length > 0) {
+        const folder = folders.value.find(f => f.name === newFolder);
+        if (folder && folder.id !== selectedFolder.value) {
+          await selectFolder(folder.id, folder.name);
+        }
+      }
+    });
+
     onMounted(() => {
       initGoogleAuth();
+      window.addEventListener('scroll', handleScroll);
     });
 
     return {
@@ -150,6 +199,7 @@ export default {
       loading,
       signIn,
       selectFolder,
+      imageGrid
     };
   }
 };
