@@ -57,7 +57,9 @@ export default {
     const images = ref([]);
     const loading = ref(false);
 
+    // Use environment variables
     const ROOT_FOLDER_ID = import.meta.env.VITE_ROOT_FOLDER_ID;
+    const SHARED_DRIVE_ID = import.meta.env.VITE_SHARED_DRIVE_ID;
     const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
     const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
@@ -68,7 +70,7 @@ export default {
         apiKey: API_KEY,
         clientId: CLIENT_ID,
         discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"],
-        scope: 'https://www.googleapis.com/auth/drive.readonly'
+        scope: 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.metadata.readonly'
       });
 
       const authInstance = gapi.auth2.getAuthInstance();
@@ -76,14 +78,14 @@ export default {
       authInstance.isSignedIn.listen(updateSignInStatus);
 
       if (isSignedIn.value) {
-        listFolders();
+        listSubfolders(ROOT_FOLDER_ID);
       }
     };
 
     const updateSignInStatus = (signedIn) => {
       isSignedIn.value = signedIn;
       if (signedIn) {
-        listFolders();
+        listSubfolders(ROOT_FOLDER_ID);
       } else {
         folders.value = [];
         images.value = [];
@@ -94,16 +96,20 @@ export default {
       gapi.auth2.getAuthInstance().signIn();
     };
 
-    const listFolders = async () => {
+    const listSubfolders = async (folderId) => {
       loading.value = true;
       try {
         const response = await gapi.client.drive.files.list({
-          q: "mimeType='application/vnd.google-apps.folder'",
-          fields: 'files(id, name)'
+          q: `'${folderId}' in parents and mimeType='application/vnd.google-apps.folder'`,
+          fields: 'files(id, name)',
+          supportsAllDrives: true,
+          includeItemsFromAllDrives: true,
+          corpora: 'drive',
+          driveId: SHARED_DRIVE_ID
         });
         folders.value = response.result.files;
       } catch (error) {
-        console.error('Error listing folders:', error);
+        console.error('Error listing subfolders:', error);
       }
       loading.value = false;
     };
@@ -119,7 +125,11 @@ export default {
       try {
         const response = await gapi.client.drive.files.list({
           q: `'${folderId}' in parents and (mimeType contains 'image/')`,
-          fields: 'files(id, name, webViewLink, thumbnailLink)'
+          fields: 'files(id, name, webViewLink, thumbnailLink)',
+          supportsAllDrives: true,
+          includeItemsFromAllDrives: true,
+          corpora: 'drive',
+          driveId: SHARED_DRIVE_ID
         });
         images.value = response.result.files;
       } catch (error) {
