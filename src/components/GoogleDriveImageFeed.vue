@@ -9,10 +9,7 @@
     <div v-else class="flex flex-col md:flex-row">
       <div class="w-full md:w-1/4 pr-4 mb-4 md:mb-0">
         <h2 class="text-xl font-semibold mb-2">Subfolders</h2>
-        <div v-if="loading" class="flex justify-center items-center h-64">
-          <span class="loading loading-spinner loading-lg"></span>
-        </div>
-        <ul v-else class="menu bg-base-200 w-full rounded-box">
+        <ul class="menu bg-base-200 w-full rounded-box">
           <li v-for="folder in folders" :key="folder.id">
             <a @click="selectFolder(folder.id, folder.name)" 
                :class="{ 'active': selectedFolder === folder.id }">
@@ -43,6 +40,9 @@
             </div>
           </div>
         </div>
+        <div v-if="loading && images.length > 0" class="flex justify-center items-center mt-4">
+          <span class="loading loading-spinner loading-lg"></span>
+        </div>
       </div>
     </div>
   </div>
@@ -61,6 +61,7 @@ export default {
     const selectedFolder = ref(null);
     const images = ref([]);
     const loading = ref(false);
+    const loadingSubFolder = ref(false);
     const nextPageToken = ref(null);
     const imageGrid = ref(null);
 
@@ -136,6 +137,7 @@ export default {
     };
 
     const listImages = async (folderId, pageToken = null) => {
+      images.value = [];
       loading.value = true;
       try {
         const response = await gapi.client.drive.files.list({
