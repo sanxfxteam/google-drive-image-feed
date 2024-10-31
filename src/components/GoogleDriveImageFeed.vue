@@ -30,7 +30,7 @@
         <div v-else class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4" ref="imageGrid">
           <div v-for="image in images" :key="image.id" class="card bg-base-100 shadow-xl">
             <figure class="aspect-square overflow-hidden">
-              <img :src="image.thumbnailLink" :alt="image.name" class="w-full h-full object-cover" @click="openFullScreen(image.thumbnailLink)" />
+              <img :src="image.thumbnailLink" :alt="image.name" class="w-full h-full object-cover" @click="openFullScreen(image.highResLink)" />
             </figure>
             <div class="card-body p-4">
               <h2 class="card-title text-sm">{{ image.name }}</h2>
@@ -148,7 +148,7 @@ export default {
       try {
         const response = await gapi.client.drive.files.list({
           q: `'${folderId}' in parents and (mimeType contains 'image/')`,
-          fields: 'nextPageToken, files(id, name, webViewLink, thumbnailLink)',
+          fields: 'nextPageToken, files(id, name, webViewLink, thumbnailLink, webContentLink)',
           pageSize: 20,
           pageToken: pageToken,
           supportsAllDrives: true,
@@ -156,10 +156,14 @@ export default {
           corpora: 'drive',
           driveId: SHARED_DRIVE_ID
         });
+        const files = response.result.files.map(file => ({
+          ...file,
+          highResLink: file.webContentLink
+        }));
         if (pageToken) {
-          images.value = [...images.value, ...response.result.files];
+          images.value = [...images.value, ...files];
         } else {
-          images.value = response.result.files;
+          images.value = files;
         }
         nextPageToken.value = response.result.nextPageToken;
       } catch (error) {
