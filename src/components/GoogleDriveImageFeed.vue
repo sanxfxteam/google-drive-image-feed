@@ -30,7 +30,7 @@
         <div v-else class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4" ref="imageGrid">
           <div v-for="image in images" :key="image.id" class="card bg-base-100 shadow-xl">
             <figure class="aspect-square overflow-hidden">
-              <img :src="image.thumbnailLink" :alt="image.name" class="w-full h-full object-cover" />
+              <img :src="image.thumbnailLink" :alt="image.name" class="w-full h-full object-cover" @click="openFullScreen(image.highResLink)" />
             </figure>
             <div class="card-body p-4">
               <h2 class="card-title text-sm">{{ image.name }}</h2>
@@ -45,6 +45,7 @@
         </div>
       </div>
     </div>
+    <FullScreenImage :imageSrc="fullScreenImageSrc" ref="fullScreenImage" />
   </div>
 </template>
 
@@ -52,9 +53,13 @@
 import { ref, onMounted, watch } from 'vue';
 import { loadGapiInsideDOM } from "gapi-script";
 import { useRoute, useRouter } from 'vue-router';
+import FullScreenImage from './FullScreenImage.vue';
 
 export default {
   name: 'GoogleDriveImageFeed',
+  components: {
+    FullScreenImage
+  },
   setup() {
     const isSignedIn = ref(false);
     const folders = ref([]);
@@ -64,6 +69,7 @@ export default {
     const loadingSubFolder = ref(false);
     const nextPageToken = ref(null);
     const imageGrid = ref(null);
+    const fullScreenImageSrc = ref(null);
 
     const route = useRoute();
     const router = useRouter();
@@ -142,7 +148,7 @@ export default {
       try {
         const response = await gapi.client.drive.files.list({
           q: `'${folderId}' in parents and (mimeType contains 'image/')`,
-          fields: 'nextPageToken, files(id, name, webViewLink, thumbnailLink)',
+          fields: 'nextPageToken, files(id, name, webViewLink, thumbnailLink, webContentLink)',
           pageSize: 20,
           pageToken: pageToken,
           supportsAllDrives: true,
@@ -150,10 +156,14 @@ export default {
           corpora: 'drive',
           driveId: SHARED_DRIVE_ID
         });
+        const files = response.result.files.map(file => ({
+          ...file,
+          highResLink: file.webContentLink
+        }));
         if (pageToken) {
-          images.value = [...images.value, ...response.result.files];
+          images.value = [...images.value, ...files];
         } else {
-          images.value = response.result.files;
+          images.value = files;
         }
         nextPageToken.value = response.result.nextPageToken;
       } catch (error) {
@@ -179,6 +189,14 @@ export default {
       }
     };
 
+    const openFullScreen = (imageSrc) => {
+      fullScreenImageSrc.value = imageSrc;
+      const fullScreenImageComponent = imageGrid.value.$refs.fullScreenImage;
+      if (fullScreenImageComponent) {
+        fullScreenImageComponent.open();
+      }
+    };
+
     watch(() => route.query.folder, async (newFolder) => {
       if (newFolder && folders.value.length > 0) {
         const folder = folders.value.find(f => f.name === newFolder);
@@ -201,7 +219,9 @@ export default {
       loading,
       signIn,
       selectFolder,
-      imageGrid
+      imageGrid,
+      openFullScreen,
+      fullScreenImageSrc
     };
   }
 };
