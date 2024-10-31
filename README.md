@@ -67,6 +67,50 @@ This will generate a `dist` folder with the built application.
 5. Add `http://localhost:5173` to the authorized JavaScript origins for development.
 6. Add your production URL to the authorized JavaScript origins for production use.
 
+## Deploying to GitHub Pages using GitHub Actions
+
+To deploy this application to GitHub Pages using GitHub Actions, follow these steps:
+
+1. Ensure that the `base` property in the `vite.config.js` file is set to `'/google-drive-image-feed/'`.
+
+2. Create a new GitHub Actions workflow file `deploy.yml` in the `.github/workflows` directory with the following content:
+
+   ```yaml
+   name: Deploy to GitHub Pages
+
+   on:
+     push:
+       branches:
+         - main
+
+   jobs:
+     build:
+       runs-on: ubuntu-latest
+
+       steps:
+         - name: Checkout repository
+           uses: actions/checkout@v2
+
+         - name: Setup Node.js
+           uses: actions/setup-node@v2
+           with:
+             node-version: '20'
+
+         - name: Install dependencies
+           run: npm install
+
+         - name: Build project
+           run: npm run build
+
+         - name: Deploy to GitHub Pages
+           uses: peaceiris/actions-gh-pages@v3
+           with:
+             github_token: ${{ secrets.GITHUB_TOKEN }}
+             publish_dir: ./dist
+   ```
+
+3. Commit and push your changes to the `main` branch. The GitHub Actions workflow will automatically build and deploy your application to GitHub Pages.
+
 ## Contributing
 
 Contributions to the Google Drive Image Feed project are welcome. Please follow these steps:
@@ -90,4 +134,3 @@ This project uses the following license: [MIT License](LICENSE).
 - [Google Drive API](https://developers.google.com/drive)
 - [DaisyUI](https://daisyui.com/)
 - [Tailwind CSS](https://tailwindcss.com/)
-
