@@ -58,6 +58,14 @@ npm run build
 
 This will generate a `dist` folder with the built application.
 
+To serve the `dist` directory using `http-server`:
+
+```
+npm run serve
+```
+
+This will start an HTTP server and serve the `dist` directory on port 8080.
+
 ## Google API Setup
 
 1. Go to the [Google Cloud Console](https://console.cloud.google.com/).
