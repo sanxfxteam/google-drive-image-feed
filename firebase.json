@@ -1,5 +1,6 @@
 {
   "hosting": {
+    "target": "shiva-image-feed",
     "public": "dist",
     "ignore": [
       "firebase.json",
