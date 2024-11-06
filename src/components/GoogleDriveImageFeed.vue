@@ -138,7 +138,7 @@ export default {
 
     const selectFolder = async (folderId, folderName) => {
       selectedFolder.value = folderId;
-      router.push({ query: { folder: folderName } });
+      router.push({... route, query: { folder: folderName } });
       await listImages(folderId);
     };
 
