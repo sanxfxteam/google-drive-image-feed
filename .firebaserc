@@ -1,5 +1,16 @@
 {
   "projects": {
     "default": "livem-demo"
-  }
+  },
+  "targets": {
+    "livem-demo": {
+      "hosting": {
+        "shiva-image-feed": [
+          "livem-demo"
+        ]
+      }
+    }
+  },
+  "etags": {},
+  "dataconnectEmulatorConfig": {}
 }
