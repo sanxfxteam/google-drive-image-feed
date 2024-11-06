@@ -18,3 +18,4 @@ jobs:
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_LIVEM_DEMO }}
           channelId: live
           projectId: livem-demo
+          target: shiva-image-feed
