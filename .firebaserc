@@ -6,7 +6,7 @@
     "livem-demo": {
       "hosting": {
         "shiva-image-feed": [
-          "livem-demo"
+          "shiva-image-feed"
         ]
       }
     }
