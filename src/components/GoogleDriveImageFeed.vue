@@ -115,7 +115,7 @@ export default {
     };
 
     const signIn = () => {
-      gapi.auth2.getAuthInstance().signIn();
+      gapi.client.getAuthInstance().signIn();
     };
 
     const listSubfolders = async (folderId) => {
