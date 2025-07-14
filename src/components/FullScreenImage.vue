@@ -5,29 +5,30 @@
   </div>
 </template>
 
-<script>
-export default {
-  name: 'FullScreenImage',
-  props: {
-    imageSrc: {
-      type: String,
-      required: true
-    }
-  },
-  data() {
-    return {
-      visible: false
-    };
-  },
-  methods: {
-    open() {
-      this.visible = true;
-    },
-    close() {
-      this.visible = false;
-    }
+<script setup>
+import { ref, defineProps, defineExpose } from 'vue';
+
+const props = defineProps({
+  imageSrc: {
+    type: String,
+    required: true
   }
+});
+
+const visible = ref(false);
+
+const open = () => {
+  visible.value = true;
 };
+
+const close = () => {
+  visible.value = false;
+};
+
+defineExpose({
+  open,
+  close
+});
 </script>
 
 <style scoped>
