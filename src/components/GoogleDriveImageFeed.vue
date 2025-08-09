@@ -86,7 +86,7 @@ const listImages = async (folderId, pageToken = null) => {
   try {
     const response = await gapi.client.drive.files.list({
       q: `'${folderId}' in parents and (mimeType contains 'image/')`,
-      fields: 'nextPageToken, files(id, name, webViewLink, thumbnailLink, webContentLink)',
+      fields: 'nextPageToken, files(id, name, webViewLink, thumbnailLink, webContentLink, mimeType, size)',
       pageSize: 20,
       pageToken: pageToken,
       supportsAllDrives: true,
@@ -94,10 +94,13 @@ const listImages = async (folderId, pageToken = null) => {
       corpora: 'drive',
       driveId: SHARED_DRIVE_ID
     });
-    const files = response.result.files.map(file => ({
-      ...file,
-      highResLink: file.webContentLink
-    }));
+    const files = response.result.files.map(file => {
+      console.log('File data:', file);
+      return {
+        ...file,
+        highResLink: file.webContentLink
+      };
+    });
     if (pageToken) {
       images.value = [...images.value, ...files];
     } else {
