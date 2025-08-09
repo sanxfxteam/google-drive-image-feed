@@ -65,7 +65,14 @@ const fullScreenImage = ref(null);
 const fullScreenImageSrc = ref(null);
 
 const handleSignIn = (signedIn) => {
+  console.log('AppLayout: Authentication state changed:', signedIn);
   isSignedIn.value = signedIn;
+  
+  // Ensure gapi is properly authenticated
+  if (signedIn && window.gapi?.auth2) {
+    const authInstance = window.gapi.auth2.getAuthInstance();
+    console.log('Auth instance signed in:', authInstance.isSignedIn.get());
+  }
 };
 
 const openFullScreen = (imageSrc) => {

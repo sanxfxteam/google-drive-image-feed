@@ -14,7 +14,7 @@
       <div v-for="image in images" :key="image.id" class="card bg-base-100 shadow-xl">
         <figure class="aspect-square overflow-hidden">
           <img 
-            :src="image.thumbnailLink" 
+            :src="getAuthenticatedThumbnail(image)" 
             :alt="image.name" 
             class="w-full h-full object-cover" 
             @click="openFullScreen(image.highResLink)"
@@ -68,6 +68,26 @@ const handleImageError = (image, event) => {
   console.error('Failed to load thumbnail for:', image.name, 'URL:', image.thumbnailLink);
   // Try to use a different image source or show placeholder
   event.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg==';
+};
+
+const getAuthenticatedThumbnail = (image) => {
+  if (!image.thumbnailLink) return null;
+  
+  // Add access token to thumbnail URL for authentication
+  if (window.gapi?.auth2) {
+    const authInstance = window.gapi.auth2.getAuthInstance();
+    if (authInstance.isSignedIn.get()) {
+      const currentUser = authInstance.currentUser.get();
+      const authResponse = currentUser.getAuthResponse();
+      if (authResponse.access_token) {
+        const url = new URL(image.thumbnailLink);
+        url.searchParams.set('access_token', authResponse.access_token);
+        return url.toString();
+      }
+    }
+  }
+  
+  return image.thumbnailLink;
 };
 
 const handleImageLoad = (image) => {
