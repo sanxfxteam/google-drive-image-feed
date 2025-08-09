@@ -1,7 +1,15 @@
 <template>
-  <button v-if="!isSignedIn" @click="signIn" class="btn btn-primary">
-    Sign In with Google
-  </button>
+  <div class="flex items-center gap-2">
+    <button v-if="!isSignedIn" @click="signIn" class="btn btn-primary">
+      Sign In with Google
+    </button>
+    <div v-else class="flex items-center gap-2">
+      <span class="text-sm">Signed in</span>
+      <button @click="signOut" class="btn btn-outline btn-sm">
+        Sign Out
+      </button>
+    </div>
+  </div>
 </template>
 
 <script setup>
@@ -34,12 +42,24 @@ const initGoogleAuth = async () => {
 };
 
 const updateSignInStatus = async (signedIn) => {
+  console.log('Auth: Sign-in status changed to:', signedIn);
   isSignedIn.value = signedIn;
   emit('signed-in', signedIn);
+  
+  if (signedIn) {
+    const authInstance = gapi.auth2.getAuthInstance();
+    const currentUser = authInstance.currentUser.get();
+    const authResponse = currentUser.getAuthResponse();
+    console.log('Auth: Access token available:', !!authResponse.access_token);
+  }
 };
 
 const signIn = () => {
   gapi.auth2.getAuthInstance().signIn();
+};
+
+const signOut = () => {
+  gapi.auth2.getAuthInstance().signOut();
 };
 
 onMounted(() => {
