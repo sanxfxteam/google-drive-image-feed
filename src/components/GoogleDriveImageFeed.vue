@@ -11,6 +11,23 @@
       </div>
     </div>
 
+    <!-- Warning display when no folders found (possible config issue) -->
+    <div v-if="!error && folders.length === 0 && !loading" class="alert alert-warning mb-4">
+      <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+      </svg>
+      <div>
+        <h3 class="font-bold">No Folders Found</h3>
+        <div class="text-sm">No subfolders found in the root directory. Please check:
+          <ul class="list-disc list-inside mt-2 ml-4">
+            <li>VITE_ROOT_FOLDER_ID is correct in your .env file</li>
+            <li>Your Google account has access to the specified folder</li>
+            <li>The folder contains subfolders (not just images)</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
     <div class="flex flex-col md:flex-row">
       <FolderList :folders="folders" :selected-folder="selectedFolder" @select-folder="handleFolderSelect" />
       <ImageList :images="images" :loading="loading" :loading-more="loadingMore" :error="error" @open-full-screen="openFullScreen" ref="imageList" />
@@ -71,6 +88,12 @@ const listSubfolders = async (folderId) => {
       driveId: SHARED_DRIVE_ID
     });
     folders.value = response.result.files;
+    console.log('Folders loaded:', response.result.files.length, 'folders found');
+    
+    // If no folders are found, it might be a permissions issue
+    if (response.result.files.length === 0) {
+      console.warn('No folders found in root directory. This might indicate insufficient permissions or incorrect folder ID.');
+    }
   } catch (err) {
     console.error('Error listing subfolders:', err);
     
