@@ -23,7 +23,7 @@
         </div>
       </div>
     </div>
-    <div v-if="loading && images.length > 0" class="flex justify-center items-center mt-4">
+    <div v-if="loadingMore" class="flex justify-center items-center mt-4">
       <span class="loading loading-spinner loading-lg"></span>
     </div>
   </div>
@@ -40,6 +40,10 @@ const props = defineProps({
   loading: {
     type: Boolean,
     required: true
+  },
+  loadingMore: {
+    type: Boolean,
+    default: false
   },
   error: {
     type: String,

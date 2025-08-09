@@ -6,7 +6,7 @@
     
     <div v-if="isSignedIn" class="flex flex-col md:flex-row">
       <FolderList :folders="folders" :selected-folder="selectedFolder" @select-folder="handleFolderSelect" />
-      <ImageList :images="images" :loading="loading" :error="error" @open-full-screen="openFullScreen" ref="imageList" />
+      <ImageList :images="images" :loading="loading" :loading-more="loadingMore" :error="error" @open-full-screen="openFullScreen" ref="imageList" />
     </div>
     <FullScreenImage :imageSrc="fullScreenImageSrc" ref="fullScreenImage" />
   </div>
@@ -25,6 +25,7 @@ const folders = ref([]);
 const selectedFolder = ref(null);
 const images = ref([]);
 const loading = ref(false);
+const loadingMore = ref(false);
 const error = ref(null);
 const nextPageToken = ref(null);
 const fullScreenImage = ref(null);
@@ -73,12 +74,17 @@ const handleFolderSelect = async ({ folderId, folderName }) => {
   selectedFolder.value = folderId;
   error.value = null;
   images.value = [];
+  nextPageToken.value = null;
   router.push({ ...route, query: { folder: folderName } });
   await listImages(folderId);
 };
 
 const listImages = async (folderId, pageToken = null) => {
-  loading.value = true;
+  if (pageToken) {
+    loadingMore.value = true;
+  } else {
+    loading.value = true;
+  }
   error.value = null;
   try {
     const response = await gapi.client.drive.files.list({
@@ -106,10 +112,11 @@ const listImages = async (folderId, pageToken = null) => {
     console.error('Error listing images:', err);
   }
   loading.value = false;
+  loadingMore.value = false;
 };
 
 const loadMoreImages = async () => {
-  if (nextPageToken.value && !loading.value) {
+  if (nextPageToken.value && !loading.value && !loadingMore.value) {
     await listImages(selectedFolder.value, nextPageToken.value);
   }
 };
