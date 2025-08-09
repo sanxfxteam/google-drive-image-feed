@@ -17,6 +17,7 @@
             :src="getAuthenticatedThumbnail(image)" 
             :alt="image.name" 
             class="w-full h-full object-cover" 
+            loading="lazy"
             @click="openFullScreen(image.highResLink)"
             @error="handleImageError(image, $event)"
             @load="handleImageLoad(image)"
@@ -71,23 +72,8 @@ const handleImageError = (image, event) => {
 };
 
 const getAuthenticatedThumbnail = (image) => {
-  if (!image.thumbnailLink) return null;
-  
-  // Add access token to thumbnail URL for authentication
-  if (window.gapi?.auth2) {
-    const authInstance = window.gapi.auth2.getAuthInstance();
-    if (authInstance.isSignedIn.get()) {
-      const currentUser = authInstance.currentUser.get();
-      const authResponse = currentUser.getAuthResponse();
-      if (authResponse.access_token) {
-        const url = new URL(image.thumbnailLink);
-        url.searchParams.set('access_token', authResponse.access_token);
-        return url.toString();
-      }
-    }
-  }
-  
-  return image.thumbnailLink;
+  // Use webContentLink (full image) instead of thumbnailLink to avoid auth issues
+  return image.webContentLink || image.highResLink || null;
 };
 
 const handleImageLoad = (image) => {

@@ -55,6 +55,7 @@
             :src="getAuthenticatedThumbnail(image)" 
             :alt="image.name"
             class="w-full h-full object-cover rounded shadow-md"
+            loading="lazy"
             @load="onImageLoad"
           />
           <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-75 text-white text-xs p-1 rounded-b">
@@ -270,23 +271,8 @@ const onImageLoad = () => {
 };
 
 const getAuthenticatedThumbnail = (image) => {
-  if (!image?.thumbnailLink) return null;
-  
-  // Add access token to thumbnail URL for authentication
-  if (window.gapi?.auth2) {
-    const authInstance = window.gapi.auth2.getAuthInstance();
-    if (authInstance.isSignedIn.get()) {
-      const currentUser = authInstance.currentUser.get();
-      const authResponse = currentUser.getAuthResponse();
-      if (authResponse.access_token) {
-        const url = new URL(image.thumbnailLink);
-        url.searchParams.set('access_token', authResponse.access_token);
-        return url.toString();
-      }
-    }
-  }
-  
-  return image.thumbnailLink;
+  // Use webContentLink (full image) instead of thumbnailLink to avoid auth issues
+  return image.webContentLink || image.highResLink || null;
 };
 
 const openFullScreen = (imageSrc) => {
