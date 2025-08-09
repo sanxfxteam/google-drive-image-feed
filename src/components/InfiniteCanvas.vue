@@ -70,6 +70,19 @@
       <span class="loading loading-spinner loading-lg"></span>
       <span class="ml-4">Loading images...</span>
     </div>
+
+    <!-- Error overlay -->
+    <div v-if="error && !loading" class="absolute inset-0 bg-base-200 bg-opacity-90 flex items-center justify-center z-20">
+      <div class="alert alert-error max-w-md">
+        <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <div>
+          <h3 class="font-bold">Access Error</h3>
+          <div class="text-xs">{{ error }}</div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -98,6 +111,7 @@ const lastPanY = ref(0);
 // Image state
 const images = ref([]);
 const loading = ref(false);
+const error = ref(null);
 const searchKeyword = ref('');
 const showAllFolders = ref(true);
 
@@ -165,6 +179,7 @@ const loadImages = async () => {
   }
   
   loading.value = true;
+  error.value = null;
   images.value = [];
   
   try {
@@ -187,8 +202,19 @@ const loadImages = async () => {
     arrangeImages(allImages);
     
     images.value = allImages;
-  } catch (error) {
-    console.error('Error loading images:', error);
+  } catch (err) {
+    console.error('Error loading images:', err);
+    
+    // Check for specific error types
+    if (err.status === 404) {
+      error.value = 'Root folder not found. Please check your configuration.';
+    } else if (err.status === 403) {
+      error.value = 'Access denied to the Google Drive folder. Please check your permissions.';
+    } else if (err.status === 401) {
+      error.value = 'Authentication failed. Please sign out and sign back in.';
+    } else {
+      error.value = `Error accessing Google Drive: ${err.message || 'Unknown error'}`;
+    }
   }
   
   loading.value = false;

@@ -1,5 +1,16 @@
 <template>
   <div class="container mx-auto p-4">
+    <!-- Error display for folder access issues -->
+    <div v-if="error && folders.length === 0 && !loading" class="alert alert-error mb-4">
+      <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <div>
+        <h3 class="font-bold">Unable to Access Google Drive</h3>
+        <div class="text-sm">{{ error }}</div>
+      </div>
+    </div>
+
     <div class="flex flex-col md:flex-row">
       <FolderList :folders="folders" :selected-folder="selectedFolder" @select-folder="handleFolderSelect" />
       <ImageList :images="images" :loading="loading" :loading-more="loadingMore" :error="error" @open-full-screen="openFullScreen" ref="imageList" />
@@ -61,8 +72,18 @@ const listSubfolders = async (folderId) => {
     });
     folders.value = response.result.files;
   } catch (err) {
-    error.value = 'Error listing subfolders. Please try again later.';
     console.error('Error listing subfolders:', err);
+    
+    // Check for specific error types
+    if (err.status === 404) {
+      error.value = 'Root folder not found. Please check the VITE_ROOT_FOLDER_ID in your environment configuration.';
+    } else if (err.status === 403) {
+      error.value = 'Access denied to the root folder. Please ensure your Google account has permission to access the specified folder and shared drive.';
+    } else if (err.status === 401) {
+      error.value = 'Authentication failed. Please sign out and sign back in to refresh your credentials.';
+    } else {
+      error.value = `Error accessing Google Drive: ${err.message || 'Unknown error'}. Please check your configuration and permissions.`;
+    }
   }
   loading.value = false;
 };
