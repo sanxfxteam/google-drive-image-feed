@@ -1,16 +1,11 @@
 <template>
   <div class="app">
-    <GoogleDriveImageFeed />
+    <router-view />
   </div>
 </template>
 
 <script>
-import GoogleDriveImageFeed from './components/GoogleDriveImageFeed.vue'
-
 export default {
-  name: 'App',
-  components: {
-    GoogleDriveImageFeed
-  }
+  name: 'App'
 }
 </script>

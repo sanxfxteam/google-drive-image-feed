@@ -1,26 +1,26 @@
 <template>
   <div class="container mx-auto p-4">
-    <h1 class="text-3xl font-bold mb-4">Google Drive Image Feed</h1>
-    
-    <Auth @signed-in="handleSignIn" />
-    
-    <div v-if="isSignedIn" class="flex flex-col md:flex-row">
+    <div class="flex flex-col md:flex-row">
       <FolderList :folders="folders" :selected-folder="selectedFolder" @select-folder="handleFolderSelect" />
       <ImageList :images="images" :loading="loading" :loading-more="loadingMore" :error="error" @open-full-screen="openFullScreen" ref="imageList" />
     </div>
-    <FullScreenImage :imageSrc="fullScreenImageSrc" ref="fullScreenImage" />
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import Auth from './Auth.vue';
 import FolderList from './FolderList.vue';
 import ImageList from './ImageList.vue';
-import FullScreenImage from './FullScreenImage.vue';
 
-const isSignedIn = ref(false);
+const props = defineProps({
+  isSignedIn: {
+    type: Boolean,
+    required: true
+  }
+});
+
+const emit = defineEmits(['open-full-screen']);
 const folders = ref([]);
 const selectedFolder = ref(null);
 const images = ref([]);
@@ -28,8 +28,6 @@ const loading = ref(false);
 const loadingMore = ref(false);
 const error = ref(null);
 const nextPageToken = ref(null);
-const fullScreenImage = ref(null);
-const fullScreenImageSrc = ref(null);
 const imageList = ref(null);
 
 const route = useRoute();
@@ -38,9 +36,8 @@ const router = useRouter();
 const ROOT_FOLDER_ID = import.meta.env.VITE_ROOT_FOLDER_ID;
 const SHARED_DRIVE_ID = import.meta.env.VITE_SHARED_DRIVE_ID;
 
-const handleSignIn = async (signedIn) => {
-  isSignedIn.value = signedIn;
-  if (signedIn) {
+const initializeData = async () => {
+  if (props.isSignedIn) {
     await listSubfolders(ROOT_FOLDER_ID);
   } else {
     folders.value = [];
@@ -135,10 +132,7 @@ const handleScroll = () => {
 };
 
 const openFullScreen = (imageSrc) => {
-  fullScreenImageSrc.value = imageSrc;
-  if (fullScreenImage.value) {
-    fullScreenImage.value.open();
-  }
+  emit('open-full-screen', imageSrc);
 };
 
 watch(() => route.query.folder, async (newFolder) => {
@@ -159,7 +153,12 @@ watch(folders, (newFolders) => {
   }
 });
 
+watch(() => props.isSignedIn, () => {
+  initializeData();
+});
+
 onMounted(() => {
   window.addEventListener('scroll', handleScroll);
+  initializeData();
 });
 </script>
